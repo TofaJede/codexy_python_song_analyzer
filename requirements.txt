@@ -1,0 +1,5 @@
+librosa
+numpy
+soundfile
+PyQt5
+pyqtgraph
