@@ -114,9 +114,9 @@ class MainWindow(QtWidgets.QWidget):
             "Displays the waveform of the loaded audio file over time."
         )
         self.waveform_plot.setBackground(BACKGROUND)
-        self.waveform_plot.setTitle("Waveform")
-        self.waveform_plot.getPlotItem().setLabel('bottom', 'Time (s)')
-        self.waveform_plot.getPlotItem().setLabel('left', 'Amplitude')
+        self.waveform_plot.setTitle("Waveform", color="#fff")
+        self.waveform_plot.getPlotItem().setLabel('bottom', 'Time (s)', color='#fff')
+        self.waveform_plot.getPlotItem().setLabel('left', 'Amplitude', color='#fff')
 
         self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
@@ -126,13 +126,13 @@ class MainWindow(QtWidgets.QWidget):
             "Shows the distribution of detected musical keys in the song."
         )
         self.key_widget.setBackground(BACKGROUND)
-        self.key_widget.setTitle("Key Distribution")
+        self.key_widget.setTitle("Key Distribution", color="#fff")
         self.key_widget.addItem(self.key_plot)
         self.key_widget.getPlotItem().getAxis('bottom').setTicks([
             [(i, note) for i, note in enumerate(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
         ])
-        self.key_widget.getPlotItem().setLabel('bottom', 'Key')
-        self.key_widget.getPlotItem().setLabel('left', 'Count')
+        self.key_widget.getPlotItem().setLabel('bottom', 'Key', color='#fff')
+        self.key_widget.getPlotItem().setLabel('left', 'Count', color='#fff')
 
         self.bpm_label = QtWidgets.QLabel('BPM: -')
         self.bpm_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -152,14 +152,14 @@ class MainWindow(QtWidgets.QWidget):
             "Shows the energy levels for low, mid, and high frequency bands."
         )
         self.eq_plot.setBackground(BACKGROUND)
-        self.eq_plot.setTitle("Frequency Spectrum")
+        self.eq_plot.setTitle("Frequency Spectrum", color="#fff")
         self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=GRADIENT_BRUSH)
         self.eq_plot.addItem(self.eq_bar)
         self.eq_plot.getPlotItem().getAxis('bottom').setTicks([
             [(0,'Low'),(1,'Mid'),(2,'High')]
         ])
-        self.eq_plot.getPlotItem().setLabel('bottom', 'Band')
-        self.eq_plot.getPlotItem().setLabel('left', 'Energy')
+        self.eq_plot.getPlotItem().setLabel('bottom', 'Band', color='#fff')
+        self.eq_plot.getPlotItem().setLabel('left', 'Energy', color='#fff')
 
         self.dynamic_label = QtWidgets.QLabel("Dynamic Range: - dB")
         self.dynamic_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -176,9 +176,9 @@ class MainWindow(QtWidgets.QWidget):
             "Displays the loudness envelope (RMS) of the song in decibels over time."
         )
         self.dynamic_plot.setBackground(BACKGROUND)
-        self.dynamic_plot.setTitle("Dynamic Range")
-        self.dynamic_plot.getPlotItem().setLabel('bottom', 'Time (s)')
-        self.dynamic_plot.getPlotItem().setLabel('left', 'dB')
+        self.dynamic_plot.setTitle("Dynamic Range", color="#fff")
+        self.dynamic_plot.getPlotItem().setLabel('bottom', 'Time (s)', color='#fff')
+        self.dynamic_plot.getPlotItem().setLabel('left', 'dB', color='#fff')
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
         self.reset_btn.setToolTip("Clear analysis results.")
@@ -277,7 +277,9 @@ class MainWindow(QtWidgets.QWidget):
         self.exit_btn.setStyleSheet(
             f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
         )
-        self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:{c};')
+        self.note_list.setStyleSheet(
+            f'background:{BACKGROUND}; color:#fff; border:1px solid {c};'
+        )
         for lbl in (
             self.bpm_label,
             self.duration_label,
@@ -286,13 +288,15 @@ class MainWindow(QtWidgets.QWidget):
             self.eq_label,
             self.dynamic_label,
         ):
-            lbl.setStyleSheet(f'color:{c};')
+            lbl.setStyleSheet('color:#fff;')
+            neon_glow(lbl, c)
         for w in (
             self.drop_label,
             self.browse_btn,
             self.reset_btn,
             self.about_btn,
             self.exit_btn,
+            self.note_list,
             self.dynamic_plot,
         ):
             neon_glow(w, c)
@@ -364,7 +368,7 @@ class MainWindow(QtWidgets.QWidget):
             'Neon Song Analyzer – Key, BPM & EQ Visualizer\n'
             'Version 1.0.0\n\n'
             'Analyzes songs to display key, tempo, and frequency spectrum.\n'
-            'Credits: OpenAI Codexy'
+            'Credits: Kryštof Tofa Košut'
         )
 
     def update_ui(self, res):
