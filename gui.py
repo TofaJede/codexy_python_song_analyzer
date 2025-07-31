@@ -81,17 +81,21 @@ class MainWindow(QtWidgets.QWidget):
         self.waveform_plot = pg.PlotWidget()
         self.waveform_plot.setToolTip("Waveform of the audio over time.")
         self.waveform_plot.setBackground(BACKGROUND)
-        self.waveform_plot.getPlotItem().hideAxis('bottom')
-        self.waveform_plot.getPlotItem().hideAxis('left')
+        self.waveform_plot.setTitle("Waveform")
+        self.waveform_plot.getPlotItem().setLabel('bottom', 'Time (s)')
+        self.waveform_plot.getPlotItem().setLabel('left', 'Amplitude')
 
         self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
         self.key_widget.setToolTip("Distribution of detected musical keys.")
         self.key_widget.setBackground(BACKGROUND)
+        self.key_widget.setTitle("Key Distribution")
         self.key_widget.addItem(self.key_plot)
         self.key_widget.getPlotItem().getAxis('bottom').setTicks([
             [(i, note) for i, note in enumerate(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
         ])
+        self.key_widget.getPlotItem().setLabel('bottom', 'Key')
+        self.key_widget.getPlotItem().setLabel('left', 'Count')
 
         self.bpm_label = QtWidgets.QLabel('BPM: -')
         self.bpm_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -104,11 +108,14 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setBackground(BACKGROUND)
+        self.eq_plot.setTitle("Frequency Spectrum")
         self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=GRADIENT_BRUSH)
         self.eq_plot.addItem(self.eq_bar)
         self.eq_plot.getPlotItem().getAxis('bottom').setTicks([
             [(0,'Low'),(1,'Mid'),(2,'High')]
         ])
+        self.eq_plot.getPlotItem().setLabel('bottom', 'Band')
+        self.eq_plot.getPlotItem().setLabel('left', 'Energy')
 
         self.dynamic_meter = QtWidgets.QProgressBar()
         self.dynamic_meter.setToolTip("Dynamic range (0–1000 scale).")
@@ -125,12 +132,37 @@ class MainWindow(QtWidgets.QWidget):
             f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
         )
 
+        self.waveform_label = QtWidgets.QLabel("Waveform")
+        self.waveform_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.key_label = QtWidgets.QLabel("Key Distribution")
+        self.key_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.eq_label = QtWidgets.QLabel("Frequency Spectrum")
+        self.eq_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        waveform_container = QtWidgets.QWidget()
+        waveform_layout = QtWidgets.QVBoxLayout(waveform_container)
+        waveform_layout.setContentsMargins(0, 0, 0, 0)
+        waveform_layout.addWidget(self.waveform_label)
+        waveform_layout.addWidget(self.waveform_plot)
+
+        key_container = QtWidgets.QWidget()
+        key_layout = QtWidgets.QVBoxLayout(key_container)
+        key_layout.setContentsMargins(0, 0, 0, 0)
+        key_layout.addWidget(self.key_label)
+        key_layout.addWidget(self.key_widget)
+
+        eq_container = QtWidgets.QWidget()
+        eq_layout = QtWidgets.QVBoxLayout(eq_container)
+        eq_layout.setContentsMargins(0, 0, 0, 0)
+        eq_layout.addWidget(self.eq_label)
+        eq_layout.addWidget(self.eq_plot)
+
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
-        layout.addWidget(self.waveform_plot, 1, 0, 1, 2)
-        layout.addWidget(self.key_widget, 2, 0)
+        layout.addWidget(waveform_container, 1, 0, 1, 2)
+        layout.addWidget(key_container, 2, 0)
         layout.addWidget(self.note_list, 2, 1)
-        layout.addWidget(self.eq_plot, 3, 0)
+        layout.addWidget(eq_container, 3, 0)
         layout.addWidget(self.dynamic_meter, 3, 1)
         layout.addWidget(self.bpm_label, 4, 0)
         layout.addWidget(self.duration_label, 4, 1)
