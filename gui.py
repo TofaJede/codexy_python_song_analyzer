@@ -118,6 +118,15 @@ class MainWindow(QtWidgets.QWidget):
         self.waveform_plot.getPlotItem().setLabel('bottom', 'Time (s)', color='#fff')
         self.waveform_plot.getPlotItem().setLabel('left', 'Amplitude', color='#fff')
 
+        # BPM-synced marker animation
+        self.beat_line = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen(SECONDARY, width=2))
+        self.beat_line.setVisible(False)
+        self.waveform_plot.addItem(self.beat_line)
+        self.beat_timer = QtCore.QTimer(self)
+        self.beat_timer.timeout.connect(self.update_beat_line)
+        self._beat_period = None
+        self._beat_phase = 0.0
+
         self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
         self.key_widget.setToolTip("Distribution of detected musical keys.")
@@ -145,18 +154,6 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.setAccessibleDescription(
             "Lists the most frequent melody notes detected in the song."
         )
-
-        self.highlight_btn = QtWidgets.QPushButton("Highlight Note")
-        self.highlight_btn.setToolTip(
-            "Highlight occurrences of the selected note in the waveform."
-        )
-        self.highlight_btn.setAccessibleName("Highlight Note Button")
-        self.highlight_btn.setAccessibleDescription(
-            "Marks the positions of the selected note on the waveform plot."
-        )
-        self.highlight_btn.clicked.connect(self.trigger_highlight)
-
-        QtWidgets.QApplication.instance().installEventFilter(self)
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setAccessibleName("Frequency Spectrum Plot")
@@ -253,7 +250,6 @@ class MainWindow(QtWidgets.QWidget):
         note_layout = QtWidgets.QVBoxLayout(note_container)
         note_layout.setContentsMargins(0, 0, 0, 0)
         note_layout.addWidget(self.note_list)
-        note_layout.addWidget(self.highlight_btn)
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
@@ -277,7 +273,6 @@ class MainWindow(QtWidgets.QWidget):
         self.accent_timer = QtCore.QTimer(self)
         self.accent_timer.timeout.connect(self.cycle_accent)
         self.accent_timer.start(50)
-        self.note_markers = []
         self.results = None
 
     def apply_accent(self) -> None:
@@ -335,34 +330,23 @@ class MainWindow(QtWidgets.QWidget):
             self.dynamic_plot.plot(*self.dynamic_data, pen=pg.mkPen(self.accent), clear=True)
         self._accent_phase += 0.1
 
-    def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.MouseButtonPress:
-            if isinstance(obj, QtWidgets.QWidget):
-                if obj is not self.note_list and not self.note_list.isAncestorOf(obj):
-                    self.note_list.clearSelection()
-                    self.clear_markers()
-        return super().eventFilter(obj, event)
+    def start_beat_animation(self, tempo: float) -> None:
+        if tempo > 0:
+            self._beat_period = 60.0 / tempo
+            self._beat_phase = 0.0
+            self.beat_line.setVisible(True)
+            self.beat_timer.start(30)
+        else:
+            self.beat_timer.stop()
+            self.beat_line.setVisible(False)
 
-    def clear_markers(self):
-        for m in self.note_markers:
-            self.waveform_plot.removeItem(m)
-        self.note_markers = []
-
-    def trigger_highlight(self):
-        item = self.note_list.currentItem()
-        if item:
-            self.highlight_note(item)
-
-    def highlight_note(self, item):
-        if not self.results:
+    def update_beat_line(self) -> None:
+        if not self.results or not self._beat_period:
             return
-        note = item.text().split(':')[0]
-        times = self.results.note_times.get(note, [])
-        self.clear_markers()
-        for t in times:
-            line = pg.InfiniteLine(pos=t, angle=90, pen=pg.mkPen(self.accent))
-            self.waveform_plot.addItem(line)
-            self.note_markers.append(line)
+        dt = self.beat_timer.interval() / 1000.0
+        self._beat_phase = (self._beat_phase + dt) % self._beat_period
+        pos = (self._beat_phase / self._beat_period) * self.results.duration
+        self.beat_line.setValue(pos)
 
     def load_file(self, path):
         if self._thread is not None:
@@ -421,7 +405,6 @@ class MainWindow(QtWidgets.QWidget):
         )
 
     def update_ui(self, res):
-        self.clear_markers()
         self.results = res
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
         self.waveform_data = (x, self.analyzer.y)
@@ -444,9 +427,9 @@ class MainWindow(QtWidgets.QWidget):
         self.dynamic_data = (x_rms, res.loudness_envelope)
         self.dynamic_plot.plot(x_rms, res.loudness_envelope, pen=pg.mkPen(self.accent), clear=True)
         self.dynamic_label.setText(f'Dynamic Range: {res.dynamic_range:.2f} dB')
+        self.start_beat_animation(res.tempo)
 
     def reset(self):
-        self.clear_markers()
         self.waveform_plot.clear()
         self.key_plot.setOpts(height=np.zeros(12))
         self.bpm_label.setText('BPM: -')
@@ -455,6 +438,10 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_bar.setOpts(height=[0,0,0])
         self.dynamic_plot.clear()
         self.dynamic_label.setText('Dynamic Range: - dB')
+        self.beat_timer.stop()
+        self.beat_line.setVisible(False)
+        self._beat_period = None
+        self._beat_phase = 0.0
         if hasattr(self, 'waveform_data'):
             del self.waveform_data
         if hasattr(self, 'dynamic_data'):
