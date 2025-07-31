@@ -1,16 +1,14 @@
 import sys
 import os
-import random
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 import numpy as np
 from audio_analyzer import AudioAnalyzer
 
-# Default colors; accent will be randomized for extra neon chaos
-DEFAULT_ACCENT = '#ff00ff'
+# Default colors
+DEFAULT_ACCENT = '#8000ff'
 BACKGROUND = '#000000'
 GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #000000, stop:1 #210042)'
-NEON_PALETTE = ['#ff00ff', '#39ff14', '#00ffff', '#ff6ec7', '#ffea00', '#ff007f']
 
 _grad = QtGui.QLinearGradient(0, 0, 0, 1)
 _grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
@@ -70,7 +68,9 @@ class AnalyzerWorker(QtCore.QObject):
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.accent = random.choice(NEON_PALETTE)
+        self.accent = DEFAULT_ACCENT
+        self._accent_phase = 0
+        self._accent_direction = 1
         self.setWindowTitle('Neon Song Analyzer – Key, BPM & EQ Visualizer')
         self.setStyleSheet(
             f'background: {GRADIENT}; color: #fff; font-family: "Comic Sans MS";'
@@ -182,6 +182,15 @@ class MainWindow(QtWidgets.QWidget):
         )
         self.about_btn.clicked.connect(self.show_about_dialog)
 
+        self.exit_btn = QtWidgets.QPushButton('Exit')
+        self.exit_btn.setToolTip("Exit the application.")
+        self.exit_btn.setAccessibleName("Exit Button")
+        self.exit_btn.setAccessibleDescription(
+            "Closes the application.",
+        )
+        self.exit_btn.setShortcut('Ctrl+Q')
+        self.exit_btn.clicked.connect(QtWidgets.QApplication.instance().quit)
+
         self.waveform_label = QtWidgets.QLabel("Waveform")
         self.waveform_label.setAlignment(QtCore.Qt.AlignCenter)
         self.key_label = QtWidgets.QLabel("Key Distribution")
@@ -222,12 +231,13 @@ class MainWindow(QtWidgets.QWidget):
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.addWidget(self.reset_btn)
         button_layout.addWidget(self.about_btn)
+        button_layout.addWidget(self.exit_btn)
         layout.addWidget(button_container, 5, 0, 1, 2)
 
         self.apply_accent()
         self.accent_timer = QtCore.QTimer(self)
-        self.accent_timer.timeout.connect(self.randomize_accent)
-        self.accent_timer.start(2000)
+        self.accent_timer.timeout.connect(self.cycle_accent)
+        self.accent_timer.start(50)
 
     def apply_accent(self) -> None:
         c = self.accent
@@ -243,6 +253,9 @@ class MainWindow(QtWidgets.QWidget):
         self.about_btn.setStyleSheet(
             f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
         )
+        self.exit_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
+        )
         self.dynamic_meter.setStyleSheet(
             f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {c};}}"
             f" QProgressBar::chunk {{background-color: {c};}}"
@@ -250,14 +263,23 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:{c};')
         for lbl in (self.bpm_label, self.duration_label, self.waveform_label, self.key_label, self.eq_label):
             lbl.setStyleSheet(f'color:{c};')
-        for w in (self.drop_label, self.browse_btn, self.reset_btn, self.about_btn, self.dynamic_meter):
+        for w in (self.drop_label, self.browse_btn, self.reset_btn, self.about_btn, self.exit_btn, self.dynamic_meter):
             neon_glow(w, c)
 
-    def randomize_accent(self) -> None:
-        self.accent = random.choice(NEON_PALETTE)
+    def cycle_accent(self) -> None:
+        start = QtGui.QColor('#8000ff')
+        end = QtGui.QColor('#ff0000')
+        t = self._accent_phase / 100.0
+        r = start.red() + (end.red() - start.red()) * t
+        g = start.green() + (end.green() - start.green()) * t
+        b = start.blue() + (end.blue() - start.blue()) * t
+        self.accent = f'#{int(r):02x}{int(g):02x}{int(b):02x}'
         self.apply_accent()
         if hasattr(self, 'waveform_data'):
             self.waveform_plot.plot(*self.waveform_data, pen=pg.mkPen(self.accent), clear=True)
+        self._accent_phase += self._accent_direction
+        if self._accent_phase >= 100 or self._accent_phase <= 0:
+            self._accent_direction *= -1
 
     def load_file(self, path):
         if self._thread is not None:
