@@ -26,12 +26,32 @@ class DropLabel(QtWidgets.QLabel):
             break
 
 
+class AnalyzerWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal(object, object)
+    error = QtCore.pyqtSignal(str)
+
+    def __init__(self, path: str):
+        super().__init__()
+        self.path = path
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        try:
+            analyzer = AudioAnalyzer(self.path)
+            results = analyzer.analyze()
+            self.finished.emit(analyzer, results)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Neon Song Analyzer')
         self.setStyleSheet(f'background-color: #111; color: {ACCENT};')
         self.analyzer = None
+        self._loader = None
+        self._thread = None
 
         self.drop_label = DropLabel()
         self.drop_label.file_dropped.connect(self.load_file)
@@ -81,9 +101,44 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(self.reset_btn, 5, 0, 1, 2)
 
     def load_file(self, path):
-        self.analyzer = AudioAnalyzer(path)
-        results = self.analyzer.analyze()
+        if self._thread is not None:
+            return
+
+        self._loader = QtWidgets.QProgressDialog("Analyzing...", None, 0, 0, self)
+        self._loader.setWindowModality(QtCore.Qt.ApplicationModal)
+        self._loader.setCancelButton(None)
+        self._loader.show()
+
+        self._thread = QtCore.QThread(self)
+        self._worker = AnalyzerWorker(path)
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self.on_analysis_finished)
+        self._worker.error.connect(self.on_analysis_error)
+        self._worker.finished.connect(self._thread.quit)
+        self._worker.error.connect(self._thread.quit)
+        self._worker.finished.connect(self._worker.deleteLater)
+        self._worker.error.connect(self._worker.deleteLater)
+        self._thread.finished.connect(self.thread_cleanup)
+        self._thread.start()
+
+    def thread_cleanup(self):
+        self._thread.deleteLater()
+        self._thread = None
+        self._worker = None
+
+    def on_analysis_finished(self, analyzer, results):
+        self.analyzer = analyzer
         self.update_ui(results)
+        if self._loader:
+            self._loader.close()
+            self._loader = None
+
+    def on_analysis_error(self, message):
+        if self._loader:
+            self._loader.close()
+            self._loader = None
+        QtWidgets.QMessageBox.critical(self, 'Analysis Error', message)
 
     def update_ui(self, res):
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
