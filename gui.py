@@ -1,22 +1,24 @@
 import sys
 import os
+import math
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 import numpy as np
 from audio_analyzer import AudioAnalyzer
 
 # Default colors
-DEFAULT_ACCENT = '#8000ff'
+DEFAULT_ACCENT = '#bf00ff'
+SECONDARY = '#8b0000'
 BACKGROUND = '#000000'
 # Radial gradient for a soft radiant background
 GRADIENT = (
     'qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, '
-    'stop:0 #210042, stop:1 #000000)'
+    'stop:0 #8b0000, stop:1 #000000)'
 )
 
 _grad = QtGui.QRadialGradient(0.5, 0.5, 0.5)
 _grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
-_grad.setColorAt(0, QtGui.QColor('#210042'))
+_grad.setColorAt(0, QtGui.QColor(SECONDARY))
 _grad.setColorAt(1, QtGui.QColor('#000000'))
 GRADIENT_BRUSH = QtGui.QBrush(_grad)
 
@@ -73,8 +75,7 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.accent = DEFAULT_ACCENT
-        self._accent_phase = 0
-        self._accent_direction = 1
+        self._accent_phase = 0.0
         self.setWindowTitle('Neon Song Analyzer – Key, BPM & EQ Visualizer')
         self.setStyleSheet(
             f'background: {GRADIENT}; color: #fff; font-family: "Comic Sans MS";'
@@ -160,14 +161,24 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_plot.getPlotItem().setLabel('bottom', 'Band')
         self.eq_plot.getPlotItem().setLabel('left', 'Energy')
 
-        self.dynamic_meter = QtWidgets.QProgressBar()
-        self.dynamic_meter.setToolTip("Dynamic range (0.00–1.00).")
-        self.dynamic_meter.setAccessibleName("Dynamic Range Meter")
-        self.dynamic_meter.setAccessibleDescription(
-            "Indicates the song's dynamic range on a scale from 0.00 to 1.00."
+        self.dynamic_label = QtWidgets.QLabel("Dynamic Range: - dB")
+        self.dynamic_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.dynamic_label.setToolTip("Overall dynamic range in decibels.")
+        self.dynamic_label.setAccessibleName("Dynamic Range Label")
+        self.dynamic_label.setAccessibleDescription(
+            "Shows the song's dynamic range in decibels."
         )
-        self.dynamic_meter.setRange(0, 1000)
-        self.dynamic_meter.setFormat("0.00")
+
+        self.dynamic_plot = pg.PlotWidget()
+        self.dynamic_plot.setToolTip("Loudness envelope over time in dB.")
+        self.dynamic_plot.setAccessibleName("Dynamic Range Plot")
+        self.dynamic_plot.setAccessibleDescription(
+            "Displays the loudness envelope (RMS) of the song in decibels over time."
+        )
+        self.dynamic_plot.setBackground(BACKGROUND)
+        self.dynamic_plot.setTitle("Dynamic Range")
+        self.dynamic_plot.getPlotItem().setLabel('bottom', 'Time (s)')
+        self.dynamic_plot.getPlotItem().setLabel('left', 'dB')
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
         self.reset_btn.setToolTip("Clear analysis results.")
@@ -220,13 +231,19 @@ class MainWindow(QtWidgets.QWidget):
         eq_layout.addWidget(self.eq_label)
         eq_layout.addWidget(self.eq_plot)
 
+        dynamic_container = QtWidgets.QWidget()
+        dynamic_layout = QtWidgets.QVBoxLayout(dynamic_container)
+        dynamic_layout.setContentsMargins(0, 0, 0, 0)
+        dynamic_layout.addWidget(self.dynamic_label)
+        dynamic_layout.addWidget(self.dynamic_plot)
+
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
         layout.addWidget(waveform_container, 1, 0, 1, 2)
         layout.addWidget(key_container, 2, 0)
         layout.addWidget(self.note_list, 2, 1)
         layout.addWidget(eq_container, 3, 0)
-        layout.addWidget(self.dynamic_meter, 3, 1)
+        layout.addWidget(dynamic_container, 3, 1)
         layout.addWidget(self.bpm_label, 4, 0)
         layout.addWidget(self.duration_label, 4, 1)
 
@@ -260,30 +277,39 @@ class MainWindow(QtWidgets.QWidget):
         self.exit_btn.setStyleSheet(
             f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
         )
-        self.dynamic_meter.setStyleSheet(
-            f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {c};}}"
-            f" QProgressBar::chunk {{background-color: {c};}}"
-        )
         self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:{c};')
-        for lbl in (self.bpm_label, self.duration_label, self.waveform_label, self.key_label, self.eq_label):
+        for lbl in (
+            self.bpm_label,
+            self.duration_label,
+            self.waveform_label,
+            self.key_label,
+            self.eq_label,
+            self.dynamic_label,
+        ):
             lbl.setStyleSheet(f'color:{c};')
-        for w in (self.drop_label, self.browse_btn, self.reset_btn, self.about_btn, self.exit_btn, self.dynamic_meter):
+        for w in (
+            self.drop_label,
+            self.browse_btn,
+            self.reset_btn,
+            self.about_btn,
+            self.exit_btn,
+            self.dynamic_plot,
+        ):
             neon_glow(w, c)
 
     def cycle_accent(self) -> None:
-        start = QtGui.QColor('#8000ff')
-        end = QtGui.QColor('#ff0000')
-        t = self._accent_phase / 100.0
-        r = start.red() + (end.red() - start.red()) * t
-        g = start.green() + (end.green() - start.green()) * t
-        b = start.blue() + (end.blue() - start.blue()) * t
-        self.accent = f'#{int(r):02x}{int(g):02x}{int(b):02x}'
+        base = QtGui.QColor(DEFAULT_ACCENT)
+        h, s, v, a = base.getHsv()
+        v = 150 + int(80 * math.sin(self._accent_phase))
+        v = max(0, min(255, v))
+        pulse = QtGui.QColor.fromHsv(h, s, v, a)
+        self.accent = pulse.name()
         self.apply_accent()
         if hasattr(self, 'waveform_data'):
             self.waveform_plot.plot(*self.waveform_data, pen=pg.mkPen(self.accent), clear=True)
-        self._accent_phase += self._accent_direction
-        if self._accent_phase >= 100 or self._accent_phase <= 0:
-            self._accent_direction *= -1
+        if hasattr(self, 'dynamic_data'):
+            self.dynamic_plot.plot(*self.dynamic_data, pen=pg.mkPen(self.accent), clear=True)
+        self._accent_phase += 0.1
 
     def load_file(self, path):
         if self._thread is not None:
@@ -359,8 +385,10 @@ class MainWindow(QtWidgets.QWidget):
 
         self.eq_bar.setOpts(height=[res.band_energy['low'], res.band_energy['mid'], res.band_energy['high']])
 
-        self.dynamic_meter.setValue(int(res.dynamic_range * 1000))
-        self.dynamic_meter.setFormat(f"{res.dynamic_range:.2f}")
+        x_rms = np.linspace(0, res.duration, num=len(res.loudness_envelope))
+        self.dynamic_data = (x_rms, res.loudness_envelope)
+        self.dynamic_plot.plot(x_rms, res.loudness_envelope, pen=pg.mkPen(self.accent), clear=True)
+        self.dynamic_label.setText(f'Dynamic Range: {res.dynamic_range:.2f} dB')
 
     def reset(self):
         self.waveform_plot.clear()
@@ -369,10 +397,12 @@ class MainWindow(QtWidgets.QWidget):
         self.duration_label.setText('Duration: -')
         self.note_list.clear()
         self.eq_bar.setOpts(height=[0,0,0])
-        self.dynamic_meter.setValue(0)
-        self.dynamic_meter.setFormat("0.00")
+        self.dynamic_plot.clear()
+        self.dynamic_label.setText('Dynamic Range: - dB')
         if hasattr(self, 'waveform_data'):
             del self.waveform_data
+        if hasattr(self, 'dynamic_data'):
+            del self.dynamic_data
         self.analyzer = None
 
 
