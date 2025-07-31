@@ -1,18 +1,31 @@
 import sys
 import os
+import random
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 import numpy as np
 from audio_analyzer import AudioAnalyzer
 
-ACCENT = '#ff0000'
-BACKGROUND = '#1a001f'
-GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1a001f, stop:1 #3e0066)'
+# Default colors; accent will be randomized for extra neon chaos
+DEFAULT_ACCENT = '#ff00ff'
+BACKGROUND = '#000000'
+GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #000000, stop:1 #210042)'
+NEON_PALETTE = ['#ff00ff', '#39ff14', '#00ffff', '#ff6ec7', '#ffea00', '#ff007f']
+
 _grad = QtGui.QLinearGradient(0, 0, 0, 1)
 _grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
-_grad.setColorAt(0, QtGui.QColor('#1a001f'))
-_grad.setColorAt(1, QtGui.QColor('#3e0066'))
+_grad.setColorAt(0, QtGui.QColor('#000000'))
+_grad.setColorAt(1, QtGui.QColor('#210042'))
 GRADIENT_BRUSH = QtGui.QBrush(_grad)
+
+
+def neon_glow(widget: QtWidgets.QWidget, color: str) -> None:
+    """Apply a soft neon glow to the given widget."""
+    effect = QtWidgets.QGraphicsDropShadowEffect()
+    effect.setBlurRadius(30)
+    effect.setColor(QtGui.QColor(color))
+    effect.setOffset(0)
+    widget.setGraphicsEffect(effect)
 
 
 class DropLabel(QtWidgets.QLabel):
@@ -22,7 +35,9 @@ class DropLabel(QtWidgets.QLabel):
         super().__init__(text)
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setAcceptDrops(True)
-        self.setStyleSheet(f'border: 2px dashed {ACCENT}; padding: 40px; background:{GRADIENT}; color:#fff;')
+        self.setStyleSheet(
+            f'border: 2px dashed {DEFAULT_ACCENT}; padding: 40px; background:{GRADIENT}; color:#fff;'
+        )
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -55,8 +70,11 @@ class AnalyzerWorker(QtCore.QObject):
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.accent = random.choice(NEON_PALETTE)
         self.setWindowTitle('Neon Song Analyzer – Key, BPM & EQ Visualizer')
-        self.setStyleSheet(f'background: {GRADIENT}; color: #fff;')
+        self.setStyleSheet(
+            f'background: {GRADIENT}; color: #fff; font-family: "Comic Sans MS";'
+        )
         self.analyzer = None
         self._loader = None
         self._thread = None
@@ -77,9 +95,6 @@ class MainWindow(QtWidgets.QWidget):
         )
         self.browse_btn.setShortcut('Ctrl+O')
         self.browse_btn.clicked.connect(self.open_file_dialog)
-        self.browse_btn.setStyleSheet(
-            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
-        )
 
         drop_container = QtWidgets.QWidget()
         drop_layout = QtWidgets.QVBoxLayout(drop_container)
@@ -125,7 +140,6 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.setAccessibleDescription(
             "Lists the most frequent melody notes detected in the song."
         )
-        self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:#fff;')
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setAccessibleName("Frequency Spectrum Plot")
@@ -149,10 +163,6 @@ class MainWindow(QtWidgets.QWidget):
             "Indicates the song's dynamic range on a scale from 0.00 to 1.00."
         )
         self.dynamic_meter.setRange(0, 1000)
-        self.dynamic_meter.setStyleSheet(
-            f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {ACCENT};}}"
-            f" QProgressBar::chunk {{background-color: {ACCENT};}}"
-        )
         self.dynamic_meter.setFormat("0.00")
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
@@ -163,9 +173,6 @@ class MainWindow(QtWidgets.QWidget):
         )
         self.reset_btn.setShortcut('Ctrl+R')
         self.reset_btn.clicked.connect(self.reset)
-        self.reset_btn.setStyleSheet(
-            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
-        )
 
         self.about_btn = QtWidgets.QPushButton('About')
         self.about_btn.setToolTip("About this application.")
@@ -174,9 +181,6 @@ class MainWindow(QtWidgets.QWidget):
             "Shows information about the application."
         )
         self.about_btn.clicked.connect(self.show_about_dialog)
-        self.about_btn.setStyleSheet(
-            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
-        )
 
         self.waveform_label = QtWidgets.QLabel("Waveform")
         self.waveform_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -219,6 +223,41 @@ class MainWindow(QtWidgets.QWidget):
         button_layout.addWidget(self.reset_btn)
         button_layout.addWidget(self.about_btn)
         layout.addWidget(button_container, 5, 0, 1, 2)
+
+        self.apply_accent()
+        self.accent_timer = QtCore.QTimer(self)
+        self.accent_timer.timeout.connect(self.randomize_accent)
+        self.accent_timer.start(2000)
+
+    def apply_accent(self) -> None:
+        c = self.accent
+        self.drop_label.setStyleSheet(
+            f'border: 2px dashed {c}; padding: 40px; background:{GRADIENT}; color:#fff;'
+        )
+        self.browse_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
+        )
+        self.reset_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
+        )
+        self.about_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {c};'
+        )
+        self.dynamic_meter.setStyleSheet(
+            f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {c};}}"
+            f" QProgressBar::chunk {{background-color: {c};}}"
+        )
+        self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:{c};')
+        for lbl in (self.bpm_label, self.duration_label, self.waveform_label, self.key_label, self.eq_label):
+            lbl.setStyleSheet(f'color:{c};')
+        for w in (self.drop_label, self.browse_btn, self.reset_btn, self.about_btn, self.dynamic_meter):
+            neon_glow(w, c)
+
+    def randomize_accent(self) -> None:
+        self.accent = random.choice(NEON_PALETTE)
+        self.apply_accent()
+        if hasattr(self, 'waveform_data'):
+            self.waveform_plot.plot(*self.waveform_data, pen=pg.mkPen(self.accent), clear=True)
 
     def load_file(self, path):
         if self._thread is not None:
@@ -278,7 +317,8 @@ class MainWindow(QtWidgets.QWidget):
 
     def update_ui(self, res):
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
-        self.waveform_plot.plot(x, self.analyzer.y, pen=ACCENT, clear=True)
+        self.waveform_data = (x, self.analyzer.y)
+        self.waveform_plot.plot(x, self.analyzer.y, pen=pg.mkPen(self.accent), clear=True)
 
         heights = [res.key_distribution[note] for note in ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']]
         self.key_plot.setOpts(height=heights)
@@ -305,6 +345,8 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_bar.setOpts(height=[0,0,0])
         self.dynamic_meter.setValue(0)
         self.dynamic_meter.setFormat("0.00")
+        if hasattr(self, 'waveform_data'):
+            del self.waveform_data
         self.analyzer = None
 
 
