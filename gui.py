@@ -55,7 +55,7 @@ class AnalyzerWorker(QtCore.QObject):
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Neon Song Analyzer')
+        self.setWindowTitle('Neon Song Analyzer – Key, BPM & EQ Visualizer')
         self.setStyleSheet(f'background: {GRADIENT}; color: #fff;')
         self.analyzer = None
         self._loader = None
@@ -166,6 +166,17 @@ class MainWindow(QtWidgets.QWidget):
             f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
         )
 
+        self.about_btn = QtWidgets.QPushButton('About')
+        self.about_btn.setToolTip("About this application.")
+        self.about_btn.setAccessibleName("About Button")
+        self.about_btn.setAccessibleDescription(
+            "Shows information about the application."
+        )
+        self.about_btn.clicked.connect(self.show_about_dialog)
+        self.about_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
+        )
+
         self.waveform_label = QtWidgets.QLabel("Waveform")
         self.waveform_label.setAlignment(QtCore.Qt.AlignCenter)
         self.key_label = QtWidgets.QLabel("Key Distribution")
@@ -200,7 +211,13 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(self.dynamic_meter, 3, 1)
         layout.addWidget(self.bpm_label, 4, 0)
         layout.addWidget(self.duration_label, 4, 1)
-        layout.addWidget(self.reset_btn, 5, 0, 1, 2)
+
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.addWidget(self.reset_btn)
+        button_layout.addWidget(self.about_btn)
+        layout.addWidget(button_container, 5, 0, 1, 2)
 
     def load_file(self, path):
         if self._thread is not None:
@@ -247,6 +264,16 @@ class MainWindow(QtWidgets.QWidget):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Audio File', '', 'Audio Files (*.mp3 *.wav *.flac)')
         if path:
             self.load_file(path)
+
+    def show_about_dialog(self):
+        QtWidgets.QMessageBox.about(
+            self,
+            'About Neon Song Analyzer',
+            'Neon Song Analyzer – Key, BPM & EQ Visualizer\n'
+            'Version 1.0.0\n\n'
+            'Analyzes songs to display key, tempo, and frequency spectrum.\n'
+            'Credits: OpenAI Codexy'
+        )
 
     def update_ui(self, res):
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
