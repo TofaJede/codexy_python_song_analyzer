@@ -15,3 +15,7 @@ Run with:
 ```
 python main.py
 ```
+
+## Credits
+
+Kryštof Tofa Košut
