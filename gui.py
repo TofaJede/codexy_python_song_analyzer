@@ -62,9 +62,11 @@ class MainWindow(QtWidgets.QWidget):
         self._thread = None
 
         self.drop_label = DropLabel()
+        self.drop_label.setToolTip("Drag a song here or click Browse to analyze.")
         self.drop_label.file_dropped.connect(self.load_file)
 
         self.browse_btn = QtWidgets.QPushButton('Browse')
+        self.browse_btn.setToolTip("Select an audio file from disk.")
         self.browse_btn.clicked.connect(self.open_file_dialog)
         self.browse_btn.setStyleSheet(
             f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
@@ -77,12 +79,14 @@ class MainWindow(QtWidgets.QWidget):
         drop_layout.addWidget(self.browse_btn)
 
         self.waveform_plot = pg.PlotWidget()
+        self.waveform_plot.setToolTip("Waveform of the audio over time.")
         self.waveform_plot.setBackground(BACKGROUND)
         self.waveform_plot.getPlotItem().hideAxis('bottom')
         self.waveform_plot.getPlotItem().hideAxis('left')
 
         self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
+        self.key_widget.setToolTip("Distribution of detected musical keys.")
         self.key_widget.setBackground(BACKGROUND)
         self.key_widget.addItem(self.key_plot)
         self.key_widget.getPlotItem().getAxis('bottom').setTicks([
@@ -95,8 +99,10 @@ class MainWindow(QtWidgets.QWidget):
         self.duration_label.setAlignment(QtCore.Qt.AlignCenter)
 
         self.note_list = QtWidgets.QListWidget()
+        self.note_list.setToolTip("Most frequent melody notes.")
         self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:#fff;')
         self.eq_plot = pg.PlotWidget()
+        self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setBackground(BACKGROUND)
         self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=GRADIENT_BRUSH)
         self.eq_plot.addItem(self.eq_bar)
@@ -105,6 +111,7 @@ class MainWindow(QtWidgets.QWidget):
         ])
 
         self.dynamic_meter = QtWidgets.QProgressBar()
+        self.dynamic_meter.setToolTip("Dynamic range (0–1000 scale).")
         self.dynamic_meter.setRange(0, 1000)
         self.dynamic_meter.setStyleSheet(
             f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {ACCENT};}}"
@@ -112,6 +119,7 @@ class MainWindow(QtWidgets.QWidget):
         )
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
+        self.reset_btn.setToolTip("Clear analysis results.")
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setStyleSheet(
             f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
