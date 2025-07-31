@@ -145,6 +145,7 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.setAccessibleDescription(
             "Lists the most frequent melody notes detected in the song."
         )
+        self.note_list.itemClicked.connect(self.highlight_note)
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setAccessibleName("Frequency Spectrum Plot")
@@ -259,6 +260,8 @@ class MainWindow(QtWidgets.QWidget):
         self.accent_timer = QtCore.QTimer(self)
         self.accent_timer.timeout.connect(self.cycle_accent)
         self.accent_timer.start(50)
+        self.note_markers = []
+        self.results = None
 
     def apply_accent(self) -> None:
         c = self.accent
@@ -314,6 +317,22 @@ class MainWindow(QtWidgets.QWidget):
         if hasattr(self, 'dynamic_data'):
             self.dynamic_plot.plot(*self.dynamic_data, pen=pg.mkPen(self.accent), clear=True)
         self._accent_phase += 0.1
+
+    def clear_markers(self):
+        for m in self.note_markers:
+            self.waveform_plot.removeItem(m)
+        self.note_markers = []
+
+    def highlight_note(self, item):
+        if not self.results:
+            return
+        note = item.text().split(':')[0]
+        times = self.results.note_times.get(note, [])
+        self.clear_markers()
+        for t in times:
+            line = pg.InfiniteLine(pos=t, angle=90, pen=pg.mkPen(self.accent))
+            self.waveform_plot.addItem(line)
+            self.note_markers.append(line)
 
     def load_file(self, path):
         if self._thread is not None:
@@ -372,6 +391,8 @@ class MainWindow(QtWidgets.QWidget):
         )
 
     def update_ui(self, res):
+        self.clear_markers()
+        self.results = res
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
         self.waveform_data = (x, self.analyzer.y)
         self.waveform_plot.plot(x, self.analyzer.y, pen=pg.mkPen(self.accent), clear=True)
@@ -395,6 +416,7 @@ class MainWindow(QtWidgets.QWidget):
         self.dynamic_label.setText(f'Dynamic Range: {res.dynamic_range:.2f} dB')
 
     def reset(self):
+        self.clear_markers()
         self.waveform_plot.clear()
         self.key_plot.setOpts(height=np.zeros(12))
         self.bpm_label.setText('BPM: -')
@@ -408,6 +430,7 @@ class MainWindow(QtWidgets.QWidget):
         if hasattr(self, 'dynamic_data'):
             del self.dynamic_data
         self.analyzer = None
+        self.results = None
 
 
 def main():
