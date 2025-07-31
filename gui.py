@@ -5,7 +5,13 @@ import pyqtgraph as pg
 import numpy as np
 from audio_analyzer import AudioAnalyzer
 
-ACCENT = '#6433a2'
+ACCENT = '#ff0000'
+GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff0000, stop:1 #6433a2)'
+_grad = QtGui.QLinearGradient(0, 0, 0, 1)
+_grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+_grad.setColorAt(0, QtGui.QColor('#ff0000'))
+_grad.setColorAt(1, QtGui.QColor('#6433a2'))
+GRADIENT_BRUSH = QtGui.QBrush(_grad)
 
 
 class DropLabel(QtWidgets.QLabel):
@@ -15,7 +21,7 @@ class DropLabel(QtWidgets.QLabel):
         super().__init__(text)
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setAcceptDrops(True)
-        self.setStyleSheet(f'border: 2px dashed {ACCENT}; padding: 40px;')
+        self.setStyleSheet(f'border: 2px dashed {ACCENT}; padding: 40px; background:{GRADIENT}; color:#fff;')
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -49,7 +55,7 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Neon Song Analyzer')
-        self.setStyleSheet(f'background-color: #111; color: {ACCENT};')
+        self.setStyleSheet(f'background: {GRADIENT}; color: #fff;')
         self.analyzer = None
         self._loader = None
         self._thread = None
@@ -59,7 +65,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.browse_btn = QtWidgets.QPushButton('Browse')
         self.browse_btn.clicked.connect(self.open_file_dialog)
-        self.browse_btn.setStyleSheet(f'background-color:{ACCENT}; color:#fff;')
+        self.browse_btn.setStyleSheet(f'background:{GRADIENT}; color:#fff;')
 
         drop_container = QtWidgets.QWidget()
         drop_layout = QtWidgets.QVBoxLayout(drop_container)
@@ -72,7 +78,7 @@ class MainWindow(QtWidgets.QWidget):
         self.waveform_plot.getPlotItem().hideAxis('bottom')
         self.waveform_plot.getPlotItem().hideAxis('left')
 
-        self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=ACCENT)
+        self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
         self.key_widget.setBackground('#111')
         self.key_widget.addItem(self.key_plot)
@@ -87,7 +93,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.note_list = QtWidgets.QListWidget()
         self.eq_plot = pg.PlotWidget()
-        self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=ACCENT)
+        self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=GRADIENT_BRUSH)
         self.eq_plot.addItem(self.eq_bar)
         self.eq_plot.getPlotItem().getAxis('bottom').setTicks([
             [(0,'Low'),(1,'Mid'),(2,'High')]
@@ -98,7 +104,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
         self.reset_btn.clicked.connect(self.reset)
-        self.reset_btn.setStyleSheet(f'background-color:{ACCENT}; color:#fff;')
+        self.reset_btn.setStyleSheet(f'background:{GRADIENT}; color:#fff;')
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
