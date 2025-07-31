@@ -70,12 +70,13 @@ class AudioAnalyzer:
             'high': band_power(4000, sr / 2)
         }
 
-        # Dynamic range
+        # Dynamic range in decibels
         rms = librosa.feature.rms(y=y)[0]
-        dynamic_range = float(rms.max() - rms.min())
+        rms_min = rms[rms > 0].min() if np.any(rms > 0) else 1e-10
+        dynamic_range = float(20 * np.log10(rms.max() / rms_min))
 
-        # Loudness envelope
-        loudness_envelope = rms
+        # Loudness envelope in decibels
+        loudness_envelope = librosa.amplitude_to_db(rms, ref=np.max)
 
         return AnalysisResults(
             duration=self.duration,

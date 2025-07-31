@@ -8,7 +8,7 @@ Desktop audio analysis tool built with Python, PyQt5 and librosa.
 - Dominant melody notes list
 - Tempo estimation
 - Frequency band energy visualization
-- Dynamic range meter
+- Dynamic range plot (dB)
 - Waveform display
 
 Run with:
