@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 import numpy as np
@@ -36,6 +37,16 @@ class MainWindow(QtWidgets.QWidget):
         self.drop_label = DropLabel()
         self.drop_label.file_dropped.connect(self.load_file)
 
+        self.browse_btn = QtWidgets.QPushButton('Browse')
+        self.browse_btn.clicked.connect(self.open_file_dialog)
+        self.browse_btn.setStyleSheet(f'background-color:{ACCENT}; color:#fff;')
+
+        drop_container = QtWidgets.QWidget()
+        drop_layout = QtWidgets.QVBoxLayout(drop_container)
+        drop_layout.setContentsMargins(0, 0, 0, 0)
+        drop_layout.addWidget(self.drop_label)
+        drop_layout.addWidget(self.browse_btn)
+
         self.waveform_plot = pg.PlotWidget()
         self.waveform_plot.setBackground('#111')
         self.waveform_plot.getPlotItem().hideAxis('bottom')
@@ -70,7 +81,7 @@ class MainWindow(QtWidgets.QWidget):
         self.reset_btn.setStyleSheet(f'background-color:{ACCENT}; color:#fff;')
 
         layout = QtWidgets.QGridLayout(self)
-        layout.addWidget(self.drop_label, 0, 0, 1, 2)
+        layout.addWidget(drop_container, 0, 0, 1, 2)
         layout.addWidget(self.waveform_plot, 1, 0, 1, 2)
         layout.addWidget(self.key_widget, 2, 0)
         layout.addWidget(self.note_list, 2, 1)
@@ -81,9 +92,15 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(self.reset_btn, 5, 0, 1, 2)
 
     def load_file(self, path):
+        self.drop_label.setText(os.path.basename(path))
         self.analyzer = AudioAnalyzer(path)
         results = self.analyzer.analyze()
         self.update_ui(results)
+
+    def open_file_dialog(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Audio File', '', 'Audio Files (*.mp3 *.wav *.flac)')
+        if path:
+            self.load_file(path)
 
     def update_ui(self, res):
         x = np.linspace(0, res.duration, num=len(self.analyzer.y))
