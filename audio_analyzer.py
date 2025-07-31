@@ -1,7 +1,7 @@
 import numpy as np
 import librosa
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 
@@ -14,7 +14,6 @@ class AnalysisResults:
     band_energy: Dict[str, float]
     dynamic_range: float
     loudness_envelope: np.ndarray
-    note_times: Dict[str, List[float]] = field(default_factory=dict)
 
 
 class AudioAnalyzer:
@@ -52,14 +51,13 @@ class AudioAnalyzer:
         # `librosa.pyin` now returns three values: pitches, voiced_flags, and voiced_probabilities
         # We only need the pitches here, so capture the additional outputs with underscores
         pitches, _, _ = librosa.pyin(y, fmin=fmin, fmax=fmax)
-        times = librosa.times_like(pitches, sr=sr)
-        note_times: Dict[str, List[float]] = {}
-        for pitch, t in zip(pitches, times):
+        note_counts: Counter = Counter()
+        for pitch in pitches:
             if np.isnan(pitch):
                 continue
             note = librosa.hz_to_note(pitch)
-            note_times.setdefault(note, []).append(float(t))
-        top_notes = Counter({n: len(ts) for n, ts in note_times.items()}).most_common(10)
+            note_counts[note] += 1
+        top_notes = note_counts.most_common(10)
 
         # Frequency band energy
         S = np.abs(librosa.stft(y))
@@ -91,5 +89,4 @@ class AudioAnalyzer:
             band_energy=band_energy,
             dynamic_range=dynamic_range,
             loudness_envelope=loudness_envelope,
-            note_times=note_times,
         )
