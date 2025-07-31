@@ -47,6 +47,10 @@ class MainWindow(QtWidgets.QWidget):
         drop_layout.addWidget(self.drop_label)
         drop_layout.addWidget(self.browse_btn)
 
+
+        self.browse_btn.clicked.connect(self.browse_file)
+        self.browse_btn.setStyleSheet(f'background-color:{ACCENT}; color:#fff;')
+
         self.waveform_plot = pg.PlotWidget()
         self.waveform_plot.setBackground('#111')
         self.waveform_plot.getPlotItem().hideAxis('bottom')
@@ -82,6 +86,8 @@ class MainWindow(QtWidgets.QWidget):
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
+        layout.addWidget(self.drop_label, 0, 0)
+        layout.addWidget(self.browse_btn, 0, 1)
         layout.addWidget(self.waveform_plot, 1, 0, 1, 2)
         layout.addWidget(self.key_widget, 2, 0)
         layout.addWidget(self.note_list, 2, 1)
@@ -90,6 +96,11 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(self.bpm_label, 4, 0)
         layout.addWidget(self.duration_label, 4, 1)
         layout.addWidget(self.reset_btn, 5, 0, 1, 2)
+
+    def browse_file(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Audio File')
+        if path:
+            self.load_file(path)
 
     def load_file(self, path):
         self.drop_label.setText(os.path.basename(path))
