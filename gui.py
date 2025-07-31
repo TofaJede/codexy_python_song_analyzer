@@ -1,6 +1,5 @@
 import sys
 import os
-import math
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 import numpy as np
@@ -75,7 +74,6 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.accent = DEFAULT_ACCENT
-        self._accent_phase = 0.0
         self.setWindowTitle('Neon Song Analyzer – Key, BPM & EQ Visualizer')
         self.setStyleSheet(
             f'background: {GRADIENT}; color: #fff; font-family: "Comic Sans MS";'
@@ -270,9 +268,6 @@ class MainWindow(QtWidgets.QWidget):
         layout.addWidget(button_container, 5, 0, 1, 2)
 
         self.apply_accent()
-        self.accent_timer = QtCore.QTimer(self)
-        self.accent_timer.timeout.connect(self.cycle_accent)
-        self.accent_timer.start(50)
         self.results = None
 
     def apply_accent(self) -> None:
@@ -315,20 +310,6 @@ class MainWindow(QtWidgets.QWidget):
             self.dynamic_plot,
         ):
             neon_glow(w, c)
-
-    def cycle_accent(self) -> None:
-        base = QtGui.QColor(DEFAULT_ACCENT)
-        h, s, v, a = base.getHsv()
-        v = 150 + int(80 * math.sin(self._accent_phase))
-        v = max(0, min(255, v))
-        pulse = QtGui.QColor.fromHsv(h, s, v, a)
-        self.accent = pulse.name()
-        self.apply_accent()
-        if hasattr(self, 'waveform_data'):
-            self.waveform_plot.plot(*self.waveform_data, pen=pg.mkPen(self.accent), clear=True)
-        if hasattr(self, 'dynamic_data'):
-            self.dynamic_plot.plot(*self.dynamic_data, pen=pg.mkPen(self.accent), clear=True)
-        self._accent_phase += 0.1
 
     def start_beat_animation(self, tempo: float) -> None:
         if tempo > 0:
