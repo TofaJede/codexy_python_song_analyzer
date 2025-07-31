@@ -6,6 +6,7 @@ Desktop audio analysis tool built with Python, PyQt5 and librosa.
 - Drag and drop audio loading
 - Key distribution bar chart
 - Dominant melody notes list
+- Highlight selected note positions in waveform
 - Tempo estimation
 - Frequency band energy visualization
 - Dynamic range plot (dB)

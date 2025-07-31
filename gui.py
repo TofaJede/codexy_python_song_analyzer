@@ -145,7 +145,17 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.setAccessibleDescription(
             "Lists the most frequent melody notes detected in the song."
         )
-        self.note_list.itemClicked.connect(self.highlight_note)
+
+        self.highlight_btn = QtWidgets.QPushButton("Highlight Note")
+        self.highlight_btn.setToolTip(
+            "Highlight occurrences of the selected note in the waveform."
+        )
+        self.highlight_btn.setAccessibleName("Highlight Note Button")
+        self.highlight_btn.setAccessibleDescription(
+            "Marks the positions of the selected note on the waveform plot."
+        )
+        self.highlight_btn.clicked.connect(self.trigger_highlight)
+
         QtWidgets.QApplication.instance().installEventFilter(self)
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
@@ -239,11 +249,17 @@ class MainWindow(QtWidgets.QWidget):
         dynamic_layout.addWidget(self.dynamic_label)
         dynamic_layout.addWidget(self.dynamic_plot)
 
+        note_container = QtWidgets.QWidget()
+        note_layout = QtWidgets.QVBoxLayout(note_container)
+        note_layout.setContentsMargins(0, 0, 0, 0)
+        note_layout.addWidget(self.note_list)
+        note_layout.addWidget(self.highlight_btn)
+
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
         layout.addWidget(waveform_container, 1, 0, 1, 2)
         layout.addWidget(key_container, 2, 0)
-        layout.addWidget(self.note_list, 2, 1)
+        layout.addWidget(note_container, 2, 1)
         layout.addWidget(eq_container, 3, 0)
         layout.addWidget(dynamic_container, 3, 1)
         layout.addWidget(self.bpm_label, 4, 0)
@@ -331,6 +347,11 @@ class MainWindow(QtWidgets.QWidget):
         for m in self.note_markers:
             self.waveform_plot.removeItem(m)
         self.note_markers = []
+
+    def trigger_highlight(self):
+        item = self.note_list.currentItem()
+        if item:
+            self.highlight_note(item)
 
     def highlight_note(self, item):
         if not self.results:
