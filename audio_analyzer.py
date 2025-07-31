@@ -48,7 +48,9 @@ class AudioAnalyzer:
         # Pitch tracking using pyin
         fmin = librosa.note_to_hz('C2')
         fmax = librosa.note_to_hz('C7')
-        pitches, _ = librosa.pyin(y, fmin=fmin, fmax=fmax)
+        # `librosa.pyin` now returns three values: pitches, voiced_flags, and voiced_probabilities
+        # We only need the pitches here, so capture the additional outputs with underscores
+        pitches, _, _ = librosa.pyin(y, fmin=fmin, fmax=fmax)
         valid_pitches = pitches[~np.isnan(pitches)]
         note_sequence = librosa.hz_to_note(valid_pitches)
         counts = Counter(note_sequence)
