@@ -146,6 +146,7 @@ class MainWindow(QtWidgets.QWidget):
             "Lists the most frequent melody notes detected in the song."
         )
         self.note_list.itemClicked.connect(self.highlight_note)
+        QtWidgets.QApplication.instance().installEventFilter(self)
         self.eq_plot = pg.PlotWidget()
         self.eq_plot.setToolTip("Energy in low, mid, and high frequency bands.")
         self.eq_plot.setAccessibleName("Frequency Spectrum Plot")
@@ -317,6 +318,14 @@ class MainWindow(QtWidgets.QWidget):
         if hasattr(self, 'dynamic_data'):
             self.dynamic_plot.plot(*self.dynamic_data, pen=pg.mkPen(self.accent), clear=True)
         self._accent_phase += 0.1
+
+    def eventFilter(self, obj, event):
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+            if isinstance(obj, QtWidgets.QWidget):
+                if obj is not self.note_list and not self.note_list.isAncestorOf(obj):
+                    self.note_list.clearSelection()
+                    self.clear_markers()
+        return super().eventFilter(obj, event)
 
     def clear_markers(self):
         for m in self.note_markers:
