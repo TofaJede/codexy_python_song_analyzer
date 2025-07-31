@@ -4,7 +4,7 @@ import pyqtgraph as pg
 import numpy as np
 from audio_analyzer import AudioAnalyzer
 
-ACCENT = 'rgb(100, 51, 162)'
+ACCENT = '#6433a2'
 
 
 class DropLabel(QtWidgets.QLabel):
