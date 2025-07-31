@@ -143,16 +143,17 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_plot.getPlotItem().setLabel('left', 'Energy')
 
         self.dynamic_meter = QtWidgets.QProgressBar()
-        self.dynamic_meter.setToolTip("Dynamic range (0–1000 scale).")
+        self.dynamic_meter.setToolTip("Dynamic range (0.00–1.00).")
         self.dynamic_meter.setAccessibleName("Dynamic Range Meter")
         self.dynamic_meter.setAccessibleDescription(
-            "Indicates the song's dynamic range on a scale from 0 to 1000."
+            "Indicates the song's dynamic range on a scale from 0.00 to 1.00."
         )
         self.dynamic_meter.setRange(0, 1000)
         self.dynamic_meter.setStyleSheet(
             f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {ACCENT};}}"
             f" QProgressBar::chunk {{background-color: {ACCENT};}}"
         )
+        self.dynamic_meter.setFormat("0.00")
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
         self.reset_btn.setToolTip("Clear analysis results.")
@@ -283,7 +284,8 @@ class MainWindow(QtWidgets.QWidget):
         self.key_plot.setOpts(height=heights)
 
         self.bpm_label.setText(f'BPM: {res.tempo:.1f}')
-        self.duration_label.setText(f'Duration: {res.duration:.2f}s')
+        mins, secs = divmod(int(res.duration), 60)
+        self.duration_label.setText(f'Duration: {mins:02d}:{secs:02d}')
 
         self.note_list.clear()
         for note, count in res.top_notes:
@@ -292,6 +294,7 @@ class MainWindow(QtWidgets.QWidget):
         self.eq_bar.setOpts(height=[res.band_energy['low'], res.band_energy['mid'], res.band_energy['high']])
 
         self.dynamic_meter.setValue(int(res.dynamic_range * 1000))
+        self.dynamic_meter.setFormat(f"{res.dynamic_range:.2f}")
 
     def reset(self):
         self.waveform_plot.clear()
@@ -301,6 +304,7 @@ class MainWindow(QtWidgets.QWidget):
         self.note_list.clear()
         self.eq_bar.setOpts(height=[0,0,0])
         self.dynamic_meter.setValue(0)
+        self.dynamic_meter.setFormat("0.00")
         self.analyzer = None
 
 
