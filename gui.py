@@ -8,12 +8,16 @@ from audio_analyzer import AudioAnalyzer
 # Default colors
 DEFAULT_ACCENT = '#8000ff'
 BACKGROUND = '#000000'
-GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #000000, stop:1 #210042)'
+# Radial gradient for a soft radiant background
+GRADIENT = (
+    'qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, '
+    'stop:0 #210042, stop:1 #000000)'
+)
 
-_grad = QtGui.QLinearGradient(0, 0, 0, 1)
+_grad = QtGui.QRadialGradient(0.5, 0.5, 0.5)
 _grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
-_grad.setColorAt(0, QtGui.QColor('#000000'))
-_grad.setColorAt(1, QtGui.QColor('#210042'))
+_grad.setColorAt(0, QtGui.QColor('#210042'))
+_grad.setColorAt(1, QtGui.QColor('#000000'))
 GRADIENT_BRUSH = QtGui.QBrush(_grad)
 
 
