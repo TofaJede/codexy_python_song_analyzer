@@ -6,11 +6,12 @@ import numpy as np
 from audio_analyzer import AudioAnalyzer
 
 ACCENT = '#ff0000'
-GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff0000, stop:1 #6433a2)'
+BACKGROUND = '#1a001f'
+GRADIENT = 'qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1a001f, stop:1 #3e0066)'
 _grad = QtGui.QLinearGradient(0, 0, 0, 1)
 _grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
-_grad.setColorAt(0, QtGui.QColor('#ff0000'))
-_grad.setColorAt(1, QtGui.QColor('#6433a2'))
+_grad.setColorAt(0, QtGui.QColor('#1a001f'))
+_grad.setColorAt(1, QtGui.QColor('#3e0066'))
 GRADIENT_BRUSH = QtGui.QBrush(_grad)
 
 
@@ -65,7 +66,9 @@ class MainWindow(QtWidgets.QWidget):
 
         self.browse_btn = QtWidgets.QPushButton('Browse')
         self.browse_btn.clicked.connect(self.open_file_dialog)
-        self.browse_btn.setStyleSheet(f'background:{GRADIENT}; color:#fff;')
+        self.browse_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
+        )
 
         drop_container = QtWidgets.QWidget()
         drop_layout = QtWidgets.QVBoxLayout(drop_container)
@@ -74,13 +77,13 @@ class MainWindow(QtWidgets.QWidget):
         drop_layout.addWidget(self.browse_btn)
 
         self.waveform_plot = pg.PlotWidget()
-        self.waveform_plot.setBackground('#111')
+        self.waveform_plot.setBackground(BACKGROUND)
         self.waveform_plot.getPlotItem().hideAxis('bottom')
         self.waveform_plot.getPlotItem().hideAxis('left')
 
         self.key_plot = pg.BarGraphItem(x=range(12), height=np.zeros(12), width=0.6, brush=GRADIENT_BRUSH)
         self.key_widget = pg.PlotWidget()
-        self.key_widget.setBackground('#111')
+        self.key_widget.setBackground(BACKGROUND)
         self.key_widget.addItem(self.key_plot)
         self.key_widget.getPlotItem().getAxis('bottom').setTicks([
             [(i, note) for i, note in enumerate(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
@@ -92,7 +95,9 @@ class MainWindow(QtWidgets.QWidget):
         self.duration_label.setAlignment(QtCore.Qt.AlignCenter)
 
         self.note_list = QtWidgets.QListWidget()
+        self.note_list.setStyleSheet(f'background:{BACKGROUND}; color:#fff;')
         self.eq_plot = pg.PlotWidget()
+        self.eq_plot.setBackground(BACKGROUND)
         self.eq_bar = pg.BarGraphItem(x=[0,1,2], height=[0,0,0], width=0.6, brush=GRADIENT_BRUSH)
         self.eq_plot.addItem(self.eq_bar)
         self.eq_plot.getPlotItem().getAxis('bottom').setTicks([
@@ -101,10 +106,16 @@ class MainWindow(QtWidgets.QWidget):
 
         self.dynamic_meter = QtWidgets.QProgressBar()
         self.dynamic_meter.setRange(0, 1000)
+        self.dynamic_meter.setStyleSheet(
+            f"QProgressBar {{background-color: {BACKGROUND}; color: #fff; border: 1px solid {ACCENT};}}"
+            f" QProgressBar::chunk {{background-color: {ACCENT};}}"
+        )
 
         self.reset_btn = QtWidgets.QPushButton('Reset')
         self.reset_btn.clicked.connect(self.reset)
-        self.reset_btn.setStyleSheet(f'background:{GRADIENT}; color:#fff;')
+        self.reset_btn.setStyleSheet(
+            f'background:{GRADIENT}; color:#fff; border:1px solid {ACCENT};'
+        )
 
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(drop_container, 0, 0, 1, 2)
